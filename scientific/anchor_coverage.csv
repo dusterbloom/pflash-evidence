@@ -1,0 +1,6 @@
+body_bucket,turns,anchor_zero_count,anchor_zero_pct,rescued_by_2gram_pct
+"<=16K",95,8,8.4,100.0
+"16-32K",45,3,6.7,100.0
+"32-64K",26,0,0.0,N/A
+"64-128K",2,0,0.0,N/A
+"overall",168,11,6.5,100.0
