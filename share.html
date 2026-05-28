@@ -3,125 +3,125 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PFlash ee7 — 9.29× drafter speedup at 128K on RTX 3090</title>
-<meta property="og:title" content="PFlash ee7 — 9.29× drafter speedup at 128K on RTX 3090">
-<meta property="og:description" content="PFlash ee7: 9.29× drafter speedup at 128K, confirmed across all 5 agentic clients (2.1×–3.7×) on RTX 3090. Adaptive keep_ratio bandit Pareto-dominates fixed-high. Bug #42 root-caused (deterministic at S mod 4096). 67% of the drafter is dead weight in pflash mode.">
+<title>Adaptive composition — 13× prefill TPS, +47% decode TPS on RTX 3090</title>
+<meta property="og:title" content="Adaptive composition — 13× prefill TPS, +47% decode TPS on RTX 3090">
+<meta property="og:description" content="Round 5 4-arm orthogonality matrix: pflash-only delivers 8,231 vs 642 tok/s prefill and 33.0 vs 22.5 tok/s decode; dflash alone is a net loss (NIAH 1/5). Composition adds long-ctx insurance. Validated 2026-05-28, RTX 3090, Qwen3.6-27B-Q4_K_M + tq3_0 KV.">
 <meta property="og:type" content="article">
-<!-- og:image points to where the social card will live; file not yet uploaded -->
-<meta property="og:image" content="/og/pflash-evidence.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&display=swap" rel="stylesheet">
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #FAF7F2; --bg-card: #F5F1EB; --text: #1A1915; --text-sec: #5C5A54;
-  --accent: #B05C3F; --border: #E8E4DC; --green: #3F6F4F; --red: #A8453A;
-  --font-serif: "Fraunces", Georgia, serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0b;--bg-card:#111113;--bg-card-2:#1a1a1d;
+  --text:#e8e8ed;--text-sec:#9d9da5;
+  --accent:#f5c842;--accent-dim:#c49e2a;
+  --green:#4ade80;--red:#f87171;
+  --border:#252528;--border-light:#2e2e32;
+  --radius:10px;
+  --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
-body { background: var(--bg); color: var(--text); font-family: var(--font-sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
-.wrap { max-width: 760px; margin: 0 auto; padding: 3rem 2rem; }
-h1 { font-family: var(--font-serif); font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 500; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
-.sub { color: var(--text-sec); margin-bottom: 2rem; font-size: 0.95rem; }
-.chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 2.5rem; }
-.chip { font-size: 0.78rem; font-weight: 500; background: var(--bg-card); border: 1px solid var(--border); border-radius: 100px; padding: 0.3rem 0.85rem; white-space: nowrap; }
-.chip strong { color: var(--accent); }
-h2 { font-family: var(--font-serif); font-size: 1.25rem; font-weight: 500; margin: 2rem 0 0.75rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
-h2:first-of-type { border-top: none; padding-top: 0; }
-p { margin-bottom: 1em; color: var(--text); font-size: 0.95rem; }
-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 1.5rem; }
-th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-sec); border-bottom: 2px solid var(--border); }
-td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
-tr:last-child td { border-bottom: none; }
-.num { text-align: right; }
-.hl { background: #F9EDE7; font-weight: 500; }
-code { font-family: var(--font-mono); font-size: 0.82em; background: var(--bg-card); border: 1px solid var(--border); padding: 0.1em 0.35em; border-radius: 3px; }
-.callout { border-left: 3px solid var(--accent); background: #F9EDE7; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.9rem; }
-.warn { border-left: 3px solid var(--red); background: #FBF0EF; padding: 1rem 1.25rem; border-radius: 0 8px 8px 0; margin: 1rem 0; font-size: 0.9rem; }
-del { color: var(--text-sec); }
-footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--text-sec); }
-a { color: var(--accent); }
+html{font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.65;-webkit-font-smoothing:antialiased}
+.wrap{max-width:760px;margin:0 auto;padding:3rem 2rem}
+.branch-tag{font-family:var(--font-mono);font-size:0.72rem;color:var(--accent);margin-bottom:1rem}
+h1{font-size:clamp(1.75rem,4vw,2.5rem);font-weight:700;line-height:1.15;letter-spacing:-0.02em;margin-bottom:0.75rem}
+.sub{color:var(--text-sec);margin-bottom:2rem;font-size:0.95rem;line-height:1.6}
+.chips{display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:2.5rem}
+.chip{font-size:0.78rem;font-weight:500;background:var(--bg-card);border:1px solid var(--border-light);border-radius:100px;padding:0.3rem 0.85rem;white-space:nowrap;color:var(--text-sec)}
+.chip strong{color:var(--accent)}
+h2{font-size:1.15rem;font-weight:600;color:var(--text);margin:2rem 0 0.75rem;padding-top:1.5rem;border-top:1px solid var(--border);letter-spacing:-0.01em}
+h2:first-of-type{border-top:none;padding-top:0}
+p{margin-bottom:1em;color:var(--text-sec);font-size:0.95rem;line-height:1.7}
+p strong{color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+.tbl-wrap{overflow-x:auto;margin-bottom:1.5rem}
+table{width:100%;border-collapse:collapse;font-size:0.83rem;font-variant-numeric:tabular-nums}
+th{text-align:left;padding:0.5rem 0.75rem;font-size:0.68rem;font-weight:600;letter-spacing:0.07em;text-transform:uppercase;color:var(--text-sec);border-bottom:1px solid var(--border-light);white-space:nowrap}
+td{padding:0.5rem 0.75rem;border-bottom:1px solid var(--border);color:var(--text-sec);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.hl td{background:rgba(245,200,66,0.05);color:var(--text)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+code{font-family:var(--font-mono);font-size:0.8em;background:var(--bg-card-2);border:1px solid var(--border-light);padding:0.1em 0.4em;border-radius:4px;color:var(--text)}
+.callout{border:1px solid var(--border-light);border-left:3px solid var(--accent);background:var(--bg-card);padding:1rem 1.25rem;border-radius:0 var(--radius) var(--radius) 0;margin:1rem 0;font-size:0.9rem;color:var(--text-sec)}
+.callout.warn{border-left-color:var(--red);background:rgba(248,113,113,0.04)}
+footer{margin-top:3rem;padding-top:1.5rem;border-top:1px solid var(--border);font-size:0.8rem;color:var(--text-sec)}
+footer code{font-size:0.78em}
+ol.findings{font-size:0.9rem;padding-left:1.5rem;margin-bottom:1rem;line-height:1.9;color:var(--text-sec)}
+ol.findings strong{color:var(--text)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--accent); margin-bottom:1rem;">feat/pflash-drafter-fastpath &mdash; d3fbad3 (ee7) &bull; b04b678 (ee14) &bull; 2026-05-22</div>
-  <h1>PFlash drafter early-exit (ee7) &mdash; 9.29&times; at 128K</h1>
-  <p class="sub">9.29&times; drafter speedup at 128K (69.5&thinsp;s &rarr; 7.5&thinsp;s), 3.68&times; at 64K, 3.51&times; at 32K. NIAH retrieval equivalent to baseline at every context. 3.07&times; on Claude Code agentic harness, <code>accept_rate</code> 30.6% &rarr; 41.7%. Validated 2026-05-22, commit <code>d3fbad3</code> on <code>feat/pflash-drafter-fastpath</code>.</p>
+  <div class="branch-tag">feat/pflash-drafter-ee7 &mdash; 5eede9c (PR&nbsp;#274) &bull; 2026-05-28</div>
+  <h1>Adaptive composition lands &mdash; 13&times; prefill TPS, +47% decode TPS</h1>
+  <p class="sub">Round 5 4-arm orthogonality matrix proves the lever decomposition: pflash compression delivers both the prefill AND decode wins; dflash spec-decode alone is a net loss without pflash; composition is pflash&nbsp;+ insurance for long-ctx multi-token decode. Validated 2026-05-28 on RTX&nbsp;3090 with Qwen3.6-27B-Q4_K_M + tq3_0&nbsp;KV.</p>
   <div class="chips">
-    <div class="chip"><strong>9.29&times;</strong> drafter speedup at 128K</div>
-    <div class="chip"><strong>3.51&times;</strong> at 32K &bull; <strong>3.68&times;</strong> at 64K</div>
-    <div class="chip"><strong>41.7%</strong> accept_rate (was 30.6%)</div>
-    <div class="chip"><strong>NIAH</strong> equivalent to baseline + ee14</div>
-    <div class="chip"><strong>OK_DONE</strong> preserved (multi-turn)</div>
-    <div class="chip"><strong>bandit MVP</strong> Days 1&ndash;4 shipped</div>
+    <div class="chip"><strong>13&times;</strong> prefill TPS &mdash; 8,231 vs 642 tok/s [VERIFIED]</div>
+    <div class="chip"><strong>+47%</strong> decode TPS &mdash; 33.0 vs 22.5 tok/s [VERIFIED]</div>
+    <div class="chip"><strong>8.5&times;</strong> wall reduction &mdash; 10.1&thinsp;s vs 86.0&thinsp;s mean [VERIFIED]</div>
+    <div class="chip"><strong>5/5 NIAH</strong> preserved</div>
+    <div class="chip"><strong>0 asserts</strong> / 5 axes</div>
   </div>
 
-  <!-- Hardware correction above the fold -->
-  <div class="warn" role="alert" aria-label="hardware correction notice">
-    <strong style="color: var(--red);">Hardware correction &mdash; cited 10&times; / 24.8 s numbers were on RTX 6000 Ada, not RTX 3090</strong>
-    <p style="margin-top:0.6rem; margin-bottom:0;">The PFlash README&rsquo;s &ldquo;10.4&times; / 24.8 s TTFT at 128K&rdquo; headline was measured on RTX 6000 Ada (sm_89, 48 GB), not RTX 3090. On RTX 3090 the realistic baseline-vs-llama.cpp speedup is closer to ~5&ndash;7&times; given hardware compute ratios.</p>
-  </div>
-
-  <h2>Long-context validation (32K&ndash;128K)</h2>
-  <p>Source: <code>dflash/bench/results/2026-05-21_ee7_longctx/SUMMARY.md</code> &bull; commit d3fbad3 &bull; RTX 3090</p>
-  <table>
-    <thead><tr><th>ctx</th><th class="num">baseline</th><th class="num">ee14</th><th class="num">ee7</th><th class="num">ee7 speedup</th><th>NIAH</th></tr></thead>
+  <h2>Orthogonality &mdash; Round 5 per-arm aggregates</h2>
+  <p>Source: <code>bench/2026-05-28_adaptive_stack/Round5_4arm_matrix_141155/DASHBOARD.md</code></p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Arm</th><th class="num">Wall (s)</th><th class="num">Prefill TPS</th><th class="num">Decode TPS</th><th>NIAH pass</th></tr></thead>
     <tbody>
-      <tr><td>32K</td><td class="num">5.05 s</td><td class="num">2.72 s</td><td class="num"><strong>1.44 s</strong></td><td class="num"><strong>3.51&times;</strong></td><td>2/3</td></tr>
-      <tr><td>64K</td><td class="num">10.41 s</td><td class="num">5.39 s</td><td class="num"><strong>2.83 s</strong></td><td class="num"><strong>3.68&times;</strong></td><td>1/3</td></tr>
-      <tr class="hl"><td><strong>128K</strong></td><td class="num"><strong>69.48 s</strong></td><td class="num"><strong>27.44 s</strong></td><td class="num"><strong>7.48 s</strong></td><td class="num"><strong>9.29&times;</strong></td><td>2/3</td></tr>
+      <tr><td>A_baseline (no opts)</td><td class="num">86.0</td><td class="num">642</td><td class="num">22.5</td><td>5/5</td></tr>
+      <tr><td>B_dflash_only</td><td class="num">85.1</td><td class="num">668</td><td class="num">21.1</td><td><strong style="color:var(--red)">1/5</strong></td></tr>
+      <tr class="hl"><td><strong>C_pflash_only</strong></td><td class="num"><strong>10.1</strong></td><td class="num"><strong>8,231</strong></td><td class="num"><strong>33.0</strong></td><td><strong>5/5</strong></td></tr>
+      <tr><td>D_composition</td><td class="num">10.7</td><td class="num">8,201</td><td class="num">24.4</td><td>5/5</td></tr>
     </tbody>
-  </table>
-  <div class="callout">NIAH retrieval is equivalent to baseline at every context. The 64K 1/3 and 128K 2/3 results match baseline and ee14 identically &mdash; same seed-specific ggml_view_3d crashes across all conditions. Not an ee7 regression.</div>
+  </table></div>
 
-  <h2>Key numbers (agentic)</h2>
-  <table>
-    <thead><tr><th>Metric</th><th>Value</th><th>Source</th></tr></thead>
+  <h2>Per-context breakdown &mdash; pflash-only vs baseline</h2>
+  <p>Source: same dashboard. Baseline decode TPS falls to 14.1 at 128K while pflash holds 31.9 &mdash; compressed KV makes decode itself faster, not just prefill.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Ctx</th><th class="num">Wall A</th><th class="num">Wall C</th><th class="num">Decode A</th><th class="num">Decode C</th><th class="num">Prefill A</th><th class="num">Prefill C</th></tr></thead>
     <tbody>
-      <tr class="hl"><td>ee7 drafter speedup at 128K NIAH</td><td><strong>9.29&times;</strong></td><td>commit d3fbad3, RTX 3090</td></tr>
-      <tr class="hl"><td>ee7 drafter speedup, claude_code agentic</td><td><strong>3.07&times;</strong></td><td>commit d3fbad3, multi-turn</td></tr>
-      <tr><td>accept_rate improvement</td><td>30.6% &rarr; 41.7%</td><td>DFlash chain</td></tr>
-      <tr><td>NIAH retrieval</td><td>equivalent to baseline at every context</td><td>32K&ndash;128K validated</td></tr>
+      <tr><td>4K</td><td class="num">7.1&thinsp;s</td><td class="num">5.2&thinsp;s</td><td class="num">31.8</td><td class="num">31.8</td><td class="num">708</td><td class="num">3,227</td></tr>
+      <tr><td>16K</td><td class="num">15.5&thinsp;s</td><td class="num">4.4&thinsp;s</td><td class="num">28.5</td><td class="num"><strong>40.0</strong></td><td class="num">750</td><td class="num">8,825</td></tr>
+      <tr><td>32K</td><td class="num">34.1&thinsp;s</td><td class="num">6.1&thinsp;s</td><td class="num">27.9</td><td class="num"><strong>38.2</strong></td><td class="num">702</td><td class="num">9,158</td></tr>
+      <tr><td>64K</td><td class="num">84.2&thinsp;s</td><td class="num">9.9&thinsp;s</td><td class="num">20.6</td><td class="num"><strong>35.6</strong></td><td class="num">579</td><td class="num">8,631</td></tr>
+      <tr class="hl"><td><strong>128K</strong></td><td class="num"><strong>229.8&thinsp;s</strong></td><td class="num"><strong>17.8&thinsp;s</strong></td><td class="num">14.1</td><td class="num"><strong>31.9</strong></td><td class="num">424</td><td class="num">8,238</td></tr>
     </tbody>
-  </table>
+  </table></div>
 
-  <h2>MTP &gamma;=2 accept rates &mdash; retracted</h2>
-  <div class="warn" role="alert" aria-label="retraction notice">
-    <strong style="color: var(--red);">Retracted 2026-05-21</strong><br>
-    <del>MTP &gamma;=2 accept rates 0.83 / 0.88 / 0.79 across turns 1&ndash;3</del> &rarr; <strong>RETRACTED.</strong> The original measurement was turn-1-only, before compression actually fires. MTP + PFlash compose currently crashes on turn 2+ (P0 bug #24, Codex investigating). DFlash chain is the validated spec-decode path: 3/3 OK_DONE across turns under real compression (commit 51c8763).
-  </div>
+  <h2>Real-session replay &mdash; Round 5b composition arm &times; 4 tiers</h2>
+  <div class="callout">Real claude_code session corpora replayed against composition arm. Mean decode TPS held 27&ndash;42 tok/s across all 4 tiers (SHORT/MED/LARGE/XL). Most turns are short (60&ndash;2700 tokens) &mdash; corresponds to typical agentic coding. Confirms composition behaves consistently on real workloads.</div>
+  <p>Source: <code>bench/2026-05-28_adaptive_stack/Round5b_real_replay_141951/DASHBOARD.md</code></p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Tier</th><th class="num">n_turns</th><th class="num">Wall (s)</th><th class="num">Prompt tok</th><th class="num">Prefill TPS</th><th class="num">Decode TPS</th></tr></thead>
+    <tbody>
+      <tr><td>SHORT</td><td class="num">1</td><td class="num">3.3</td><td class="num">21</td><td class="num">105</td><td class="num">42.3</td></tr>
+      <tr><td>MED</td><td class="num">5</td><td class="num">11.1</td><td class="num">1,785</td><td class="num">1,607</td><td class="num">31.3</td></tr>
+      <tr><td>LARGE</td><td class="num">5</td><td class="num">7.0</td><td class="num">331</td><td class="num">1,127</td><td class="num">36.2</td></tr>
+      <tr><td>XL</td><td class="num">5</td><td class="num">7.3</td><td class="num">559</td><td class="num">1,868</td><td class="num">27.7</td></tr>
+    </tbody>
+  </table></div>
 
-  <h2>Adaptive keep_ratio bandit MVP</h2>
-  <p>Days 1&ndash;4 shipped on <code>feat/pflash-mvp-adaptive-keep</code>:</p>
-  <ul style="font-size:0.9rem; padding-left:1.5rem; margin-bottom:1rem; line-height:1.8;">
-    <li><code>GenerateResult.accept_rate</code> plumbed end-to-end (commit <code>fa61e6f</code>)</li>
-    <li><code>AdaptiveKeepRatioState</code> + step function, 11 GREEN tests (commit <code>96833a4</code>)</li>
-    <li>Live HTTP request integration with <code>extra_body.session_id</code> (commit <code>ff7fa5a</code>)</li>
-    <li>A/B harness validation: bandit fires live, OK_DONE preserved (commit <code>8768a8d</code>)</li>
-  </ul>
-  <div style="font-family:var(--font-mono); font-size:0.78rem; background:var(--bg-card); border:1px solid var(--border); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; color:var(--text-sec);">[pflash-bandit] session=claude_code_s1 turn=1 keep=0.1000&rarr;0.1100 (accept=0.347)</div>
-  <div class="callout"><strong>Pareto-dominance VERIFIED (Day 5 &mdash; commits 0d40f2f, 1a1a0f6).</strong> Bandit (keep=0.10 start) Pareto-dominates fixed-high (keep=0.20): 16 s vs 19 s wall (&minus;3 s) + 31.9% vs 25.4% accept_rate (+6.5 pp). Ties fixed-low within noise.</div>
+  <h2>Three findings developers need to know</h2>
+  <ol class="findings">
+    <li><strong>Always use pflash</strong> &mdash; biggest single contributor across the full spectrum (13&times; prefill + 47% decode TPS)</li>
+    <li><strong>dflash without pflash is a net loss</strong> &mdash; drafter overhead with full KV beats amortization; NIAH 1/5 vs baseline 5/5</li>
+    <li><strong>Composition = pflash + insurance</strong> for long-ctx multi-token decode; the ~25% decode penalty vs pflash-only is the cost of that coverage</li>
+  </ol>
 
-  <h2>Cross-arch drafter loader</h2>
-  <p>Cross-arch loader shipped (commit <code>7c3df9c</code>, ~30 LOC) &mdash; accepts qwen3/qwen2/llama-arch GGUFs. SmolLM2-360M loads correctly.</p>
-  <div class="warn">
-    <strong>Speed-blocked:</strong> the FlashPrefill BSA kernel rejects non-Qwen3-0.6B head/layer geometry. The fallback path is 4&times; <em>slower</em> than baseline. Cross-family is loader-ready but not speed-ready until the BSA kernel template is generalized (multi-week CUDA engineering work).
-  </div>
-
-  <h2>What works, what does not</h2>
-  <div class="warn">
-    <strong>24 GB VMM crash (historical):</strong> <code>pflash_skip_park</code> works on RTX 3090 (24 GB) WITH ee7 enabled per commit 62bfb11 &mdash; no <code>cuMemSetAccess NOT_READY</code>. The historical 24 GB crash was triggered by full-28-layer drafter VRAM footprint, not a hardware limit. Legacy workaround (full-layer drafter): <code>GGML_CUDA_NO_VMM=1</code> or <code>--pflash-skip-park=false</code>.
-  </div>
-  <div class="warn">
-    <strong>VT task excluded:</strong> Synthetic VT harness has a filler design confound. Results are not reported.
+  <h2>Honest caveats</h2>
+  <div class="callout warn">
+    <strong style="color:var(--text)">Quality (LongBench HotpotQA):</strong> compressed F1&nbsp;=&nbsp;0.587 / uncompressed F1&nbsp;=&nbsp;0.547 &mdash; both inside the published 55&ndash;65% range for this Q4_K_M+tq3_0 stack. See full evidence for per-context breakdown.<br><br>
+    <strong style="color:var(--text)">MED-tier real-session:</strong> composition lost 19% tok/J vs pflash-only (Axis D); EMA-driven C2 gate v2 is a candidate follow-up.<br><br>
+    <strong style="color:var(--text)">C2 mechanism gate</strong> is a switch, not a knob. Bench at 128K with gate disabled is queued.
   </div>
 
   <p>Full evidence dossier: <a href="index.html">index.html</a></p>
 
   <footer>
-    Last updated: 2026-05-22 &bull; Hardware: RTX 3090 (24 GB) &bull; Qwen3.6-27B-Q4_K_M &bull; BSA on, &alpha;=0.85 &bull; Branch: <code>feat/pflash-drafter-fastpath</code>
+    Last updated: 2026-05-28 &bull; Hardware: RTX&nbsp;3090 (24&nbsp;GB), Qwen3.6-27B-Q4_K_M, tq3_0&nbsp;KV &bull;
+    Branch: <code>feat/pflash-drafter-ee7</code> @ <code>5eede9c</code> (post-rebase) &bull;
+    Drafters: pflash&nbsp;= Qwen3-0.6B-Q8_0, dflash&nbsp;= dflash-draft-3.6-q4_k_m &bull;
+    Backup of prior: <code>git checkout backup/pre-redesign-2026-05-28</code>
   </footer>
 </div>
 </body>
