@@ -1,9 +1,9 @@
 # PFlash Adaptive Composition — Evidence Dossier
 
-**Last updated:** 2026-05-28
-**Branch:** `feat/pflash-drafter-ee7` @ commit `5eede9c`
+**Last updated:** 2026-05-31
+**Branch:** `feat/pflash-drafter-ee7` @ commit `8fc961b` (PR #274 tip, type-gate router)
 **Hardware:** RTX 3090 (24 GB), Qwen3.6-27B-Q4_K_M + tq3_0 KV, BSA on, α=0.85
-**Bench root:** `lucebox-hub/bench/2026-05-28_adaptive_stack/`
+**Bench root:** `lucebox-hub/bench/2026-05-28_adaptive_stack/` + `bench/2026-05-31_definitive_ab/`
 
 ---
 
@@ -15,6 +15,35 @@
 | `[OBSERVED]` | Measured once; reproducible but not re-run |
 | `[PUBLISHED]` | From external source (cite URL/paper) |
 | `[INFERRED]` | Derived from data, not directly measured |
+
+---
+
+## 0. Type-gate regime router A/B — 2026-05-31 (headline)
+
+`[VERIFIED]` Source: `bench/2026-05-31_definitive_ab/run_20260531_111334/REPORT.md`
+
+Binary built from PR #274 tip `8fc961b`, verified to contain both the admission-gate
+(`dflash::common::check_admission` symbol) and the router (`agentic_throttle` strings).
+4 cold-prefill turns on real organic claude-code agentic sessions (user turns 34–37K est
+tokens, native tool blocks + `tools` array → agentic path fires). Fresh server per arm
+(true cold prefill, no prefix-cache).
+
+| metric | router OFF | router ON | speedup |
+|--------|:----------:|:---------:|:-------:|
+| keep % | 72.3% (44.7–100) | 24.9% | — |
+| prefill tok/s | 1248 | 3747 | **3.00×** |
+| wall p50 | 64.9 s | 22.3 s | **2.91×** |
+| decode tok/s | 20.6 | 27.8 | +35% |
+| tool_parse | 4/4 OK | 4/4 OK | held |
+
+All 4 ON turns routed `type=agentic, keep=0.25, cascade=off`. 0 floor-clamps, 0 guard fires.
+The effective-size admission gate does **not** suppress the cascade over-forcing (OFF still
+72% avg on dense agentic), so the router win is real on the shipped base. The router is
+**default-OFF** (`PFLASH_ROUTER_ENABLE`); it adds opt-in code + 401 LOC of tests, no default
+behavior change.
+
+N = 4 cold turns. Matches the earlier-base measurement (2.85× wall / 2.89× prefill) within
+noise — the win holds after rebasing the router onto the live admission-gate + c2-gate base.
 
 ---
 
